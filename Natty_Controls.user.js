@@ -25,6 +25,9 @@ function NattyControls() {
 
                 if(!/^\[ Natty/.test(content.textContent.trim())) return; // event is not a report
 
+                const idRegex = /sentinel\.erwaysoftware\.com\/posts\/(\d+)/g;
+                let sentinelId = idRegex.exec(content.innerHTML)[1];
+                
                 function send(message) {
                     $.ajax({
                         'type': 'POST',
@@ -49,11 +52,15 @@ function NattyControls() {
                     node.addEventListener('click', clickHandler(`:${event.message_id} ${message}`), false);
                     return node;
                 }
+                
 
                 setTimeout(() => {
                     const message = document.querySelector(`#message-${event.message_id} .content`);
 
                     const wrap = document.createElement('span');
+                    wrap.id = 'natty-controls-'+sentinelId;
+                    wrap.dataset.sentinel = sentinelId;
+                    wrap.classList.add('natty-controls');
                     wrap.appendChild(document.createTextNode(' [ '));
                     wrap.appendChild(createLink('tp'));
                     wrap.appendChild(document.createTextNode(' | '));
@@ -62,6 +69,8 @@ function NattyControls() {
                     wrap.appendChild(createLink('ne'));
                     wrap.appendChild(document.createTextNode(' ] '));
                     message.insertBefore(wrap, message.firstChild);
+                    
+                    //loadSentinelData();
                 }, 0);
             }
 
@@ -82,9 +91,38 @@ function NattyControls() {
             handleLoadedEvents(eventHandler);
         }
     };
+    
+}
+
+function loadSentinelData() {
+    console.log("Loading data...");
+    var allControls = document.getElementsByClassName('natty-controls');
+
+    for(i=0; i < allControls.length; i++) {
+        var control = allControls[i];
+        var id = control.dataset.sentinel;
+        console.log(id);
+        
+        processPostWithId(id);
+    }
+}
+
+function processPostWithId(id) {
+    var span = document.getElementById('natty-controls-'+id);
+    
+    $.ajax({
+        'type': 'GET',
+        'url': "https://sentinel.erwaysoftware.com/posts/"+id,
+        context: span
+    }).done(function() {
+        $(this).innerHTML = "done";
+    });
+    
 }
 
 const script = document.createElement('script');
 script.textContent = `(${ NattyControls.toString() })();`;
 console.log(script.textContent);
 document.body.appendChild(script);
+
+setTimeout(loadSentinelData, 3000);
